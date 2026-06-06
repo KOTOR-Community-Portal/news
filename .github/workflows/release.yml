@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-type:
+        type: choice
+        options: ["patch", "minor", "major"]
+        required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get App Token
+        id: app_token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PRIVATE_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          path: news
+          token: ${{ steps.app_token.outputs.token }}
+      - name: Configure Git
+        run: |
+          git config --global user.name ${{ github.actor }}
+          git config --global user.email ${{ github.actor_id }}+${{ github.actor }}
+       
+      - name: Release
+        uses: KOTOR-Community-Portal/actions/gitflow-release@main
+        with:
+          version-type: ${{ inputs.version-type }}
+          workspace: news
